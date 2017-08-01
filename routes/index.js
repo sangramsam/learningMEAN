@@ -1,14 +1,28 @@
 var express = require('express');
 var router = express.Router();
+var path = require('path');
 var lib = require('../lib/management');
 const passport = require('passport');
 const jwt = require('jsonwebtoken');
+const uuid = require('node-uuid');
 const User = require('../model/user');
 const config = require('../config/connect');
-;
+const mailer = require('nodemailer');
+const EmailTemplate = require('email-templates').EmailTemplate;
 
 /* GET home page. */
-
+var smtpConfig = {
+    host: 'smtp.gmail.com',
+    port: 465,
+    secure: true, // secure:true for port 465, secure:false for port 587
+    auth: {
+        user: 'singh.sangram56@gmail.com',
+        pass: 'snh2sangram'
+    }
+};
+var transporter = mailer.createTransport(smtpConfig),
+    templatesDir = path.resolve(__dirname, '../', 'templates'),
+    template = new EmailTemplate(path.join(templatesDir, 'ForgotPassword'));
 
 router.get('/', function (req, res, next) {
 
@@ -31,6 +45,25 @@ router.post('/register', function (req, res, next) {
         if (err) {
             res.json({success: false, mesg: 'fail to register user'});
         } else {
+            var local = {
+                data: req.body.name
+            };
+            template.render(local, function (error, results) {
+                if (error) {
+                    return console.log(error);
+                }
+                mailOptions = {
+                    from: smtpConfig.auth.user,
+                    to: req.body.email,
+                    subject: "Welome to MEAN",
+                    html: results.html
+                };
+                transporter.sendMail(mailOptions, function (error, info) {
+                    if (error) {
+                        debug(error);
+                    }
+                });
+            });
             res.json({success: true, mesg: 'User Registered Successfully'});
         }
     });
@@ -53,9 +86,7 @@ router.post('/authenticate', function (req, res, next) {
                 User.findOne({username: username}, function (err, docs) {
                     // console.log("token", docs);
                     if (docs.auth_token === null) {
-                        token = jwt.sign(user, config.secret, {
-                            expiresIn: 604
-                        });
+                        token = uuid.v4();
                         console.log("new Token" + token)
                         User.getUserByName(username, function (err, newUser) {
                             newUser.auth_token = token;
