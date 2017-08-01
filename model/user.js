@@ -19,11 +19,11 @@ const UserSchema = mongoose.Schema({
         type: String,
         required: true
     },
-    auth_token:{
-        type:String
+    auth_token: {
+        type: String
     },
-    modified:{
-        type:String
+    modified: {
+        type: String
     }
 });
 const User = module.exports = mongoose.model('User', UserSchema);
@@ -33,6 +33,11 @@ module.exports.getUserById = function (id, callback) {
 }
 module.exports.getUserByName = function (userName, callback) {
     const query = {username: userName}
+    User.findOne(query, callback);
+
+}
+module.exports.getUserByEmail = function (email, callback) {
+    const query = {email: email}
     User.findOne(query, callback);
 
 }

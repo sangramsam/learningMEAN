@@ -3,26 +3,11 @@ var router = express.Router();
 var path = require('path');
 var lib = require('../lib/management');
 const passport = require('passport');
-const jwt = require('jsonwebtoken');
 const uuid = require('node-uuid');
 const User = require('../model/user');
 const config = require('../config/connect');
-const mailer = require('nodemailer');
-const EmailTemplate = require('email-templates').EmailTemplate;
+const mail = require('../lib/mailer');
 
-/* GET home page. */
-var smtpConfig = {
-    host: 'smtp.gmail.com',
-    port: 465,
-    secure: true, // secure:true for port 465, secure:false for port 587
-    auth: {
-        user: 'singh.sangram56@gmail.com',
-        pass: 'snh2sangram'
-    }
-};
-var transporter = mailer.createTransport(smtpConfig),
-    templatesDir = path.resolve(__dirname, '../', 'templates'),
-    template = new EmailTemplate(path.join(templatesDir, 'ForgotPassword'));
 
 router.get('/', function (req, res, next) {
 
@@ -39,35 +24,30 @@ router.post('/register', function (req, res, next) {
         auth_token: null,
         modified: new Date()
     });
-
-    User.addUser(newUser, function (err, user) {
-
-        if (err) {
-            res.json({success: false, mesg: 'fail to register user'});
+    User.getUserByName(req.body.username, function (err, result) {
+        if (result) {
+            res.json({success: false, mesg: 'Username already exits'});
         } else {
-            var local = {
-                data: req.body.name
-            };
-            template.render(local, function (error, results) {
-                if (error) {
-                    return console.log(error);
+            User.getUserByEmail(req.body.email, function (err, reslt) {
+                if (reslt) {
+                    res.json({success: false, mesg: 'Email id already exits'});
+                } else {
+                    User.addUser(newUser, function (err, user) {
+
+                        if (err) {
+                            res.json({success: false, mesg: 'fail to register user'});
+                        } else {
+                            mail.mailer(req.body.email, req.body.name, function (callback) {
+                                res.json({success: true, mesg: 'User Registered Successfully'});
+                            });
+
+                        }
+                    });
                 }
-                mailOptions = {
-                    from: smtpConfig.auth.user,
-                    to: req.body.email,
-                    subject: "Welome to MEAN",
-                    html: results.html
-                };
-                transporter.sendMail(mailOptions, function (error, info) {
-                    if (error) {
-                        debug(error);
-                    }
-                });
             });
-            res.json({success: true, mesg: 'User Registered Successfully'});
+
         }
     });
-
 });
 router.post('/authenticate', function (req, res, next) {
     var token = null;
