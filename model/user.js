@@ -50,11 +50,13 @@ module.exports.addUser = function (newuser, callback) {
             newuser.save(callback);
         });
     })
-}
+};
 module.exports.comparePassword = function (candidatePassword, hash, callback) {
+    console.log("password",candidatePassword,hash);
     bcrypt.compare(candidatePassword, hash, function (err, isMatch) {
         if (err) throw err;
         callback(null, isMatch);
     });
-}
+};
+
 

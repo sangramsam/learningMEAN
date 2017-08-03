@@ -7,7 +7,7 @@ const uuid = require('node-uuid');
 const User = require('../model/user');
 const config = require('../config/connect');
 const mail = require('../lib/mailer');
-
+const bcrypt = require('bcryptjs');
 
 router.get('/', function (req, res, next) {
 
@@ -62,6 +62,7 @@ router.post('/authenticate', function (req, res, next) {
             return res.json({succeess: false, mesg: 'User not found'});
         }
         User.comparePassword(password, user.password, function (err, isMatch) {
+
             if (isMatch) {
                 User.findOne({username: username}, function (err, docs) {
                     // console.log("token", docs);
@@ -120,8 +121,43 @@ router.get('/logout', function (req, res, next) {
     })
     ;
 });
+router.post('/resetPassword', function (req, res, next) {
+    //console.log(req);
+    const email = req.body.email;
+    const oldPassword = req.body.oldPassword;
+    const newPassword = req.body.newPassword;
+    User.getUserByEmail(email, function (err, reslt) {
+        if (err) throw err;
+        if (reslt === null) {
+            res.jsonp({mesg: "Email id not matching"});
+        } else {
+            User.comparePassword(oldPassword, reslt.password, function (err, isMatch) {
+                console.log("ismatch", isMatch)
+                if (isMatch) {
+                    bcrypt.genSalt(10, function (err, salt) {
+                        bcrypt.hash(newPassword, salt, function (err, hash) {
+                            if (err) throw  err;
+                            reslt.password = hash;
+                            reslt.save(function (err, sucs) {
+                                if (sucs) {
+                                    res.jsonp({mesg: "Password Successfully changed"});
+                                }
+                            });
+                        });
+                    });
+                } else {
+                    res.jsonp({mesg: "Old password not matching !"});
+                }
+            });
+
+        }
+        //next();
+    });
+});
+
 function isAuthenticated(req, res, next) {
     User.findOne({auth_token: req.headers.token}, function (err, data) {
+        console.log(data);
         if (err) {
 
         }
@@ -137,4 +173,5 @@ function isAuthenticated(req, res, next) {
     });
 
 }
+
 module.exports = router;

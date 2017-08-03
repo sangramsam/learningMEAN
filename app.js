@@ -8,6 +8,7 @@ var cors = require('cors');
 var mongoose = require('mongoose');
 var passport = require('passport');
 var con = require('./config/connect');
+
 mongoose.connect(con.database, function (err) {
     if (err) {
         throw err
@@ -15,6 +16,7 @@ mongoose.connect(con.database, function (err) {
         console.log("connected", con.database);
     }
 });
+
 var index = require('./routes/index');
 var users = require('./routes/users');
 
